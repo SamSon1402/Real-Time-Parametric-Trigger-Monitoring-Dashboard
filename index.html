@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descartes - Real-Time Trigger Monitoring</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --secondary: #06b6d4;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #050a0a;
+            --bg-card: #0a1414;
+            --bg-elevated: #0f1f1f;
+            --text-primary: #ecfdf5;
+            --text-secondary: #6ee7b7;
+            --text-muted: #34d399;
+            --border: #134e4a;
+            --gradient-main: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            --gradient-danger: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(ellipse at 20% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
+        }
+
+        .header {
+            background: rgba(10, 20, 20, 0.95);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+        }
+
+        .header-content {
+            max-width: 1900px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: var(--gradient-main);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .logo-text {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-subtitle {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .header-stat {
+            text-align: center;
+        }
+
+        .header-stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .header-stat-value.live { color: var(--success); }
+        .header-stat-value.alert { color: var(--danger); }
+        .header-stat-value.warning { color: var(--warning); }
+
+        .header-stat-label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--success);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--success);
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: livePulse 1.5s infinite;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .main {
+            max-width: 1900px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+        }
+
+        /* Alert Banner */
+        .alert-banner {
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.2) 0%, rgba(245, 158, 11, 0.2) 100%);
+            border: 2px solid var(--danger);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: alertPulse 2s infinite;
+        }
+
+        @keyframes alertPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 20px 5px rgba(239, 68, 68, 0.2); }
+        }
+
+        .alert-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .alert-icon {
+            font-size: 2rem;
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-10deg); }
+            75% { transform: rotate(10deg); }
+        }
+
+        .alert-text h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--danger);
+        }
+
+        .alert-text p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .alert-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        /* Dashboard Grid */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 1400px) {
+            .dashboard { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-body { padding: 1.25rem; }
+
+        /* World Map */
+        .map-container {
+            background: var(--bg-dark);
+            border-radius: 12px;
+            height: 350px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .map-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .map-grid {
+            stroke: var(--border);
+            stroke-width: 0.5;
+            fill: none;
+        }
+
+        .continent {
+            fill: var(--bg-elevated);
+            stroke: var(--border);
+            stroke-width: 1;
+        }
+
+        .event-marker {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .event-marker:hover {
+            transform: scale(1.2);
+        }
+
+        .event-pulse {
+            animation: eventPulse 2s infinite;
+        }
+
+        @keyframes eventPulse {
+            0% { r: 8; opacity: 1; }
+            100% { r: 25; opacity: 0; }
+        }
+
+        .map-legend {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            background: rgba(10, 20, 20, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .legend-item:last-child { margin-bottom: 0; }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.cyclone { background: #ef4444; }
+        .legend-dot.earthquake { background: #f59e0b; }
+        .legend-dot.flood { background: #3b82f6; }
+        .legend-dot.hail { background: #8b5cf6; }
+        .legend-dot.wildfire { background: #f97316; }
+
+        /* Event Stats Grid */
+        .event-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .event-stat {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .event-stat.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-danger);
+        }
+
+        .event-stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .event-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .event-stat-value.danger { color: var(--danger); }
+        .event-stat-value.warning { color: var(--warning); }
+        .event-stat-value.success { color: var(--success); }
+
+        .event-stat-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Active Events Table */
+        .events-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .events-table th {
+            text-align: left;
+            padding: 0.75rem 1rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .events-table td {
+            padding: 0.75rem 1rem;
+            font-size: 0.8rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .events-table tr:hover {
+            background: var(--bg-elevated);
+        }
+
+        .events-table tr.triggered {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .event-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .event-type-badge.cyclone { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .event-type-badge.earthquake { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .event-type-badge.flood { background: rgba(59, 130, 246, 0.2); color: #3b82f6; }
+        .event-type-badge.hail { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
+
+        .intensity-bar {
+            width: 60px;
+            height: 6px;
+            background: var(--bg-dark);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .intensity-fill {
+            height: 100%;
+            border-radius: 3px;
+        }
+
+        .intensity-fill.high { background: var(--danger); }
+        .intensity-fill.medium { background: var(--warning); }
+        .intensity-fill.low { background: var(--success); }
+
+        .trigger-status {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .trigger-status.triggered {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            animation: triggerFlash 1s infinite;
+        }
+
+        @keyframes triggerFlash {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .trigger-status.monitoring {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+
+        .trigger-status.clear {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        /* Live Metrics */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .metric-card {
+            background: var(--bg-elevated);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .metric-trend {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+        }
+
+        .metric-trend.up {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+
+        .metric-trend.down {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .metric-unit {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        /* Time Series Chart */
+        .chart-container {
+            background: var(--bg-dark);
+            border-radius: 10px;
+            padding: 1rem;
+            height: 180px;
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .chart-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .chart-svg {
+            width: 100%;
+            height: 140px;
+        }
+
+        .chart-line {
+            fill: none;
+            stroke: var(--primary);
+            stroke-width: 2;
+        }
+
+        .chart-area {
+            fill: url(#chartGradient);
+        }
+
+        .chart-grid {
+            stroke: var(--border);
+            stroke-width: 0.5;
+        }
+
+        .threshold-line {
+            stroke: var(--danger);
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+        }
+
+        /* Triggered Policies */
+        .policy-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .policy-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+            border-left: 3px solid var(--danger);
+        }
+
+        .policy-item.pending {
+            border-left-color: var(--warning);
+        }
+
+        .policy-icon {
+            font-size: 1.2rem;
+        }
+
+        .policy-info { flex: 1; }
+
+        .policy-id {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .policy-detail {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .policy-payout {
+            text-align: right;
+        }
+
+        .policy-amount {
+            font-size: 0.9rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--danger);
+        }
+
+        .policy-tier {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Data Sources */
+        .data-sources {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .source-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            background: var(--bg-elevated);
+            border-radius: 8px;
+        }
+
+        .source-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .source-status.online { background: var(--success); }
+        .source-status.delayed { background: var(--warning); }
+        .source-status.offline { background: var(--danger); }
+
+        .source-info { flex: 1; }
+
+        .source-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .source-latency {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        .source-update {
+            font-size: 0.7rem;
+            font-family: 'IBM Plex Mono', monospace;
+            color: var(--text-muted);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-danger {
+            background: var(--gradient-danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-primary {
+            background: var(--gradient-main);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-dark);
+            border-color: var(--primary);
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .btn-full { grid-column: 1 / -1; }
+
+        /* Summary Card */
+        .summary-card {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%);
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+            background: var(--gradient-danger);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .summary-detail {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">📡</div>
+                <div>
+                    <div class="logo-text">Descartes Underwriting</div>
+                    <div class="logo-subtitle">Real-Time Trigger Monitoring</div>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="header-stat">
+                    <div class="header-stat-value live" id="activeEvents">7</div>
+                    <div class="header-stat-label">Active Events</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value alert">3</div>
+                    <div class="header-stat-label">Triggers Fired</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value warning">12</div>
+                    <div class="header-stat-label">Policies Affected</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value">€4.2M</div>
+                    <div class="header-stat-label">Est. Payouts</div>
+                </div>
+            </div>
+            <div class="live-indicator">
+                <div class="live-dot"></div>
+                <span>LIVE • Streaming 80+ Data Sources</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Alert Banner -->
+        <div class="alert-banner" id="alertBanner">
+            <div class="alert-content">
+                <div class="alert-icon">🚨</div>
+                <div class="alert-text">
+                    <h3>TRIGGER ACTIVATED: Cyclone Chido - Mayotte</h3>
+                    <p>Wind speed threshold exceeded (220 km/h > 150 km/h trigger) • 3 policies affected • €2.1M estimated payout</p>
+                </div>
+            </div>
+            <div class="alert-actions">
+                <button class="btn btn-secondary" onclick="viewEvent('chido')">View Details</button>
+                <button class="btn btn-danger" onclick="initiatePayout()">Initiate Payout</button>
+            </div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🗺️ Global Event Monitor</h3>
+                    <span style="font-size: 0.75rem; color: var(--success);">● Live Feed Active</span>
+                </div>
+                <div class="card-body">
+                    <!-- World Map -->
+                    <div class="map-container">
+                        <svg class="map-svg" viewBox="0 0 800 400" id="worldMap">
+                            <defs>
+                                <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" style="stop-color:rgba(16,185,129,0.3)"/>
+                                    <stop offset="100%" style="stop-color:rgba(16,185,129,0)"/>
+                                </linearGradient>
+                            </defs>
+                            <!-- Grid lines -->
+                            <g class="grid">
+                                <line x1="0" y1="100" x2="800" y2="100" class="map-grid"/>
+                                <line x1="0" y1="200" x2="800" y2="200" class="map-grid"/>
+                                <line x1="0" y1="300" x2="800" y2="300" class="map-grid"/>
+                                <line x1="200" y1="0" x2="200" y2="400" class="map-grid"/>
+                                <line x1="400" y1="0" x2="400" y2="400" class="map-grid"/>
+                                <line x1="600" y1="0" x2="600" y2="400" class="map-grid"/>
+                            </g>
+                            <!-- Simplified continents -->
+                            <g class="continents">
+                                <ellipse cx="150" cy="150" rx="80" ry="60" class="continent"/>
+                                <ellipse cx="180" cy="280" rx="50" ry="70" class="continent"/>
+                                <ellipse cx="420" cy="140" rx="120" ry="80" class="continent"/>
+                                <ellipse cx="450" cy="300" rx="40" ry="50" class="continent"/>
+                                <ellipse cx="620" cy="200" rx="100" ry="90" class="continent"/>
+                                <ellipse cx="720" cy="320" rx="50" ry="40" class="continent"/>
+                            </g>
+                            <!-- Event markers -->
+                            <g id="eventMarkers">
+                                <!-- Cyclone Chido - Mayotte -->
+                                <circle cx="500" cy="280" r="20" fill="rgba(239,68,68,0.3)" class="event-pulse"/>
+                                <circle cx="500" cy="280" r="10" fill="#ef4444" class="event-marker" onclick="selectEvent('chido')"/>
+                                
+                                <!-- Earthquake - Japan -->
+                                <circle cx="700" cy="150" r="15" fill="rgba(245,158,11,0.3)" class="event-pulse"/>
+                                <circle cx="700" cy="150" r="8" fill="#f59e0b" class="event-marker" onclick="selectEvent('japan')"/>
+                                
+                                <!-- Hailstorm - Germany -->
+                                <circle cx="430" cy="120" r="12" fill="rgba(139,92,246,0.3)" class="event-pulse"/>
+                                <circle cx="430" cy="120" r="6" fill="#8b5cf6" class="event-marker" onclick="selectEvent('germany')"/>
+                                
+                                <!-- Flood - Australia -->
+                                <circle cx="710" cy="320" r="10" fill="rgba(59,130,246,0.3)"/>
+                                <circle cx="710" cy="320" r="5" fill="#3b82f6" class="event-marker" onclick="selectEvent('australia')"/>
+                                
+                                <!-- Monitoring - USA -->
+                                <circle cx="120" cy="140" r="8" fill="rgba(16,185,129,0.3)"/>
+                                <circle cx="120" cy="140" r="4" fill="#10b981" class="event-marker"/>
+                                
+                                <!-- Monitoring - Brazil -->
+                                <circle cx="200" cy="290" r="8" fill="rgba(16,185,129,0.3)"/>
+                                <circle cx="200" cy="290" r="4" fill="#10b981" class="event-marker"/>
+                                
+                                <!-- Monitoring - India -->
+                                <circle cx="580" cy="200" r="8" fill="rgba(16,185,129,0.3)"/>
+                                <circle cx="580" cy="200" r="4" fill="#10b981" class="event-marker"/>
+                            </g>
+                        </svg>
+                        <div class="map-legend">
+                            <div class="legend-item">
+                                <div class="legend-dot cyclone"></div>
+                                <span>Tropical Cyclone</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot earthquake"></div>
+                                <span>Earthquake</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot flood"></div>
+                                <span>Flood</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot hail"></div>
+                                <span>Hailstorm</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Event Stats -->
+                    <div class="event-stats">
+                        <div class="event-stat active">
+                            <div class="event-stat-icon">🌀</div>
+                            <div class="event-stat-value danger">2</div>
+                            <div class="event-stat-label">Cyclones</div>
+                        </div>
+                        <div class="event-stat active">
+                            <div class="event-stat-icon">🌋</div>
+                            <div class="event-stat-value warning">1</div>
+                            <div class="event-stat-label">Earthquakes</div>
+                        </div>
+                        <div class="event-stat">
+                            <div class="event-stat-icon">🌊</div>
+                            <div class="event-stat-value">1</div>
+                            <div class="event-stat-label">Floods</div>
+                        </div>
+                        <div class="event-stat active">
+                            <div class="event-stat-icon">🌨️</div>
+                            <div class="event-stat-value warning">1</div>
+                            <div class="event-stat-label">Hailstorms</div>
+                        </div>
+                        <div class="event-stat">
+                            <div class="event-stat-icon">🔥</div>
+                            <div class="event-stat-value success">0</div>
+                            <div class="event-stat-label">Wildfires</div>
+                        </div>
+                    </div>
+
+                    <!-- Active Events Table -->
+                    <table class="events-table">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Intensity</th>
+                                <th>Policies</th>
+                                <th>Status</th>
+                                <th>Est. Payout</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsTable">
+                            <tr class="triggered">
+                                <td><strong>Cyclone Chido</strong></td>
+                                <td>Mayotte, France</td>
+                                <td><span class="event-type-badge cyclone">🌀 Cyclone</span></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div class="intensity-bar"><div class="intensity-fill high" style="width: 95%;"></div></div>
+                                        <span style="font-size: 0.75rem;">220 km/h</span>
+                                    </div>
+                                </td>
+                                <td>3</td>
+                                <td><span class="trigger-status triggered">⚡ TRIGGERED</span></td>
+                                <td style="font-weight: 700; color: var(--danger);">€2,100,000</td>
+                            </tr>
+                            <tr class="triggered">
+                                <td><strong>Noto Earthquake</strong></td>
+                                <td>Ishikawa, Japan</td>
+                                <td><span class="event-type-badge earthquake">🌋 Earthquake</span></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div class="intensity-bar"><div class="intensity-fill high" style="width: 82%;"></div></div>
+                                        <span style="font-size: 0.75rem;">M 6.8</span>
+                                    </div>
+                                </td>
+                                <td>5</td>
+                                <td><span class="trigger-status triggered">⚡ TRIGGERED</span></td>
+                                <td style="font-weight: 700; color: var(--danger);">€1,450,000</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Severe Hailstorm</strong></td>
+                                <td>Bavaria, Germany</td>
+                                <td><span class="event-type-badge hail">🌨️ Hail</span></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div class="intensity-bar"><div class="intensity-fill medium" style="width: 68%;"></div></div>
+                                        <span style="font-size: 0.75rem;">38mm</span>
+                                    </div>
+                                </td>
+                                <td>2</td>
+                                <td><span class="trigger-status monitoring">👁️ MONITORING</span></td>
+                                <td style="color: var(--text-muted);">Pending</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Flash Flooding</strong></td>
+                                <td>Queensland, AU</td>
+                                <td><span class="event-type-badge flood">🌊 Flood</span></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div class="intensity-bar"><div class="intensity-fill medium" style="width: 55%;"></div></div>
+                                        <span style="font-size: 0.75rem;">1.2m</span>
+                                    </div>
+                                </td>
+                                <td>2</td>
+                                <td><span class="trigger-status monitoring">👁️ MONITORING</span></td>
+                                <td style="color: var(--text-muted);">Pending</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Payout Summary -->
+                <div class="summary-card">
+                    <div class="summary-label">TOTAL ESTIMATED PAYOUTS</div>
+                    <div class="summary-value" id="totalPayout">€4,247,000</div>
+                    <div class="summary-detail">Across 12 triggered policies • 3 events</div>
+                </div>
+
+                <!-- Live Metrics -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 Live Metrics - Cyclone Chido</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <span class="metric-label">Wind Speed</span>
+                                    <span class="metric-trend up">↑ +15 km/h</span>
+                                </div>
+                                <div class="metric-value" id="windSpeed">220</div>
+                                <div class="metric-unit">km/h (Trigger: 150)</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <span class="metric-label">Pressure</span>
+                                    <span class="metric-trend down">↓ -8 hPa</span>
+                                </div>
+                                <div class="metric-value">942</div>
+                                <div class="metric-unit">hPa (Cat 4)</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <span class="metric-label">Storm Surge</span>
+                                    <span class="metric-trend up">↑ +0.3m</span>
+                                </div>
+                                <div class="metric-value">2.8</div>
+                                <div class="metric-unit">meters</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-header">
+                                    <span class="metric-label">Rainfall</span>
+                                    <span class="metric-trend up">↑ +12mm</span>
+                                </div>
+                                <div class="metric-value">187</div>
+                                <div class="metric-unit">mm / 24h</div>
+                            </div>
+                        </div>
+
+                        <!-- Time Series Chart -->
+                        <div class="chart-container">
+                            <div class="chart-title">Wind Speed (Last 24h)</div>
+                            <svg class="chart-svg" viewBox="0 0 300 120" id="windChart">
+                                <!-- Grid -->
+                                <line x1="0" y1="30" x2="300" y2="30" stroke="#134e4a" stroke-width="0.5"/>
+                                <line x1="0" y1="60" x2="300" y2="60" stroke="#134e4a" stroke-width="0.5"/>
+                                <line x1="0" y1="90" x2="300" y2="90" stroke="#134e4a" stroke-width="0.5"/>
+                                <!-- Threshold line -->
+                                <line x1="0" y1="45" x2="300" y2="45" class="threshold-line"/>
+                                <text x="305" y="48" fill="#ef4444" font-size="8">Trigger</text>
+                                <!-- Area -->
+                                <path d="M0,100 L30,95 L60,85 L90,75 L120,60 L150,50 L180,40 L210,35 L240,25 L270,20 L300,15 L300,120 L0,120 Z" class="chart-area"/>
+                                <!-- Line -->
+                                <path d="M0,100 L30,95 L60,85 L90,75 L120,60 L150,50 L180,40 L210,35 L240,25 L270,20 L300,15" class="chart-line"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Triggered Policies -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">⚡ Triggered Policies</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="policy-list">
+                            <div class="policy-item">
+                                <div class="policy-icon">🏭</div>
+                                <div class="policy-info">
+                                    <div class="policy-id">DU-CYC-2024-0312</div>
+                                    <div class="policy-detail">Port Authority Mayotte • Wind</div>
+                                </div>
+                                <div class="policy-payout">
+                                    <div class="policy-amount">€950,000</div>
+                                    <div class="policy-tier">Tier 3 (100%)</div>
+                                </div>
+                            </div>
+                            <div class="policy-item">
+                                <div class="policy-icon">🏨</div>
+                                <div class="policy-info">
+                                    <div class="policy-id">DU-CYC-2024-0298</div>
+                                    <div class="policy-detail">Hotel Group Comores • Wind</div>
+                                </div>
+                                <div class="policy-payout">
+                                    <div class="policy-amount">€720,000</div>
+                                    <div class="policy-tier">Tier 3 (100%)</div>
+                                </div>
+                            </div>
+                            <div class="policy-item">
+                                <div class="policy-icon">☀️</div>
+                                <div class="policy-info">
+                                    <div class="policy-id">DU-CYC-2024-0341</div>
+                                    <div class="policy-detail">Solar Farm Mayotte • Wind</div>
+                                </div>
+                                <div class="policy-payout">
+                                    <div class="policy-amount">€430,000</div>
+                                    <div class="policy-tier">Tier 2 (75%)</div>
+                                </div>
+                            </div>
+                            <div class="policy-item pending">
+                                <div class="policy-icon">🏗️</div>
+                                <div class="policy-info">
+                                    <div class="policy-id">DU-EQ-2024-0187</div>
+                                    <div class="policy-detail">Manufacturing Japan • Shake</div>
+                                </div>
+                                <div class="policy-payout">
+                                    <div class="policy-amount">€890,000</div>
+                                    <div class="policy-tier">Tier 2 (50%)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Sources -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📡 Data Sources</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="data-sources">
+                            <div class="source-item">
+                                <div class="source-status online"></div>
+                                <div class="source-info">
+                                    <div class="source-name">NOAA Weather API</div>
+                                    <div class="source-latency">Latency: 120ms</div>
+                                </div>
+                                <div class="source-update">2s ago</div>
+                            </div>
+                            <div class="source-item">
+                                <div class="source-status online"></div>
+                                <div class="source-info">
+                                    <div class="source-name">USGS Earthquake</div>
+                                    <div class="source-latency">Latency: 85ms</div>
+                                </div>
+                                <div class="source-update">5s ago</div>
+                            </div>
+                            <div class="source-item">
+                                <div class="source-status online"></div>
+                                <div class="source-info">
+                                    <div class="source-name">ECMWF Forecast</div>
+                                    <div class="source-latency">Latency: 340ms</div>
+                                </div>
+                                <div class="source-update">1m ago</div>
+                            </div>
+                            <div class="source-item">
+                                <div class="source-status online"></div>
+                                <div class="source-info">
+                                    <div class="source-name">Sentinel-2 Satellite</div>
+                                    <div class="source-latency">Latency: 2.1s</div>
+                                </div>
+                                <div class="source-update">4m ago</div>
+                            </div>
+                            <div class="source-item">
+                                <div class="source-status delayed"></div>
+                                <div class="source-info">
+                                    <div class="source-name">IoT Sensor Network</div>
+                                    <div class="source-latency">Latency: 890ms</div>
+                                </div>
+                                <div class="source-update">Delayed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">⚡ Quick Actions</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="action-buttons">
+                            <button class="btn btn-secondary" onclick="exportReport()">
+                                <span>📊</span> Export Report
+                            </button>
+                            <button class="btn btn-secondary" onclick="notifyClients()">
+                                <span>📧</span> Notify Clients
+                            </button>
+                            <button class="btn btn-danger btn-full" onclick="initiatePayout()">
+                                <span>💳</span> Initiate All Payouts (€4.2M)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Simulate live updates
+        function updateMetrics() {
+            const windSpeed = document.getElementById('windSpeed');
+            const currentWind = parseInt(windSpeed.textContent);
+            const newWind = currentWind + Math.floor(Math.random() * 5) - 2;
+            windSpeed.textContent = Math.max(200, Math.min(240, newWind));
+        }
+
+        function updateEventCount() {
+            const activeEvents = document.getElementById('activeEvents');
+            const flash = document.createElement('span');
+            flash.style.animation = 'flash 0.3s';
+        }
+
+        // Event selection
+        function selectEvent(eventId) {
+            console.log('Selected event:', eventId);
+            const events = {
+                'chido': 'Cyclone Chido - Category 4 tropical cyclone affecting Mayotte',
+                'japan': 'Noto Peninsula Earthquake - M6.8 seismic event',
+                'germany': 'Severe Hailstorm - 38mm hail in Bavaria',
+                'australia': 'Flash Flooding - 1.2m water levels in Queensland'
+            };
+            alert(events[eventId] || 'Event details loading...');
+        }
+
+        function viewEvent(eventId) {
+            alert(`Opening detailed view for ${eventId.toUpperCase()} event...`);
+        }
+
+        function initiatePayout() {
+            if (confirm('Initiate payouts totaling €4,247,000 for 12 triggered policies?')) {
+                alert('✅ Payout process initiated. Funds will be transferred within 48 hours.');
+            }
+        }
+
+        function exportReport() {
+            alert('📊 Generating event report PDF with all trigger validations...');
+        }
+
+        function notifyClients() {
+            alert('📧 Sending automated notifications to all affected policyholders...');
+        }
+
+        // Simulate real-time updates
+        setInterval(updateMetrics, 3000);
+
+        // Animate on load
+        document.addEventListener('DOMContentLoaded', () => {
+            const bars = document.querySelectorAll('.intensity-fill');
+            bars.forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0';
+                setTimeout(() => {
+                    bar.style.width = width;
+                    bar.style.transition = 'width 1s ease';
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>
